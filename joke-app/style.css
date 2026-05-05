@@ -1,0 +1,377 @@
+:root {
+    --bg-dark: #0a0510;
+    --neon-pink: #ff2a6d;
+    --neon-purple: #b537f2;
+    --text-main: #ffe6f0;
+    --text-muted: #d09cb2;
+    --glass-bg: rgba(20, 5, 15, 0.6);
+    --glass-border: rgba(255, 42, 109, 0.2);
+    --glass-glow: rgba(255, 42, 109, 0.4);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Noto Serif JP', serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.background-effects {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.glow-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.5;
+    animation: float 10s infinite alternate ease-in-out;
+}
+
+.orb-1 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, var(--neon-pink), transparent 70%);
+    top: -100px;
+    left: -100px;
+}
+
+.orb-2 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, var(--neon-purple), transparent 70%);
+    bottom: -150px;
+    right: -100px;
+    animation-delay: -5s;
+}
+
+@keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(30px, 50px) scale(1.1); }
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+    padding: 2rem;
+    z-index: 1;
+}
+
+.app-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 700;
+    font-style: italic;
+    color: #fff;
+    text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-purple);
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,42,109,0.05);
+    text-align: center;
+}
+
+.upload-section {
+    margin-bottom: 2rem;
+}
+
+.instruction {
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+}
+
+.upload-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.small-btn {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+}
+
+.hidden-input {
+    display: none;
+}
+
+.ai-generation-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--glass-border);
+}
+
+.ai-instruction {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--neon-purple);
+}
+
+.neon-input {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--neon-purple);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 0 5px rgba(181, 55, 242, 0.2);
+}
+
+.neon-input:focus {
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 10px rgba(255, 42, 109, 0.4), inset 0 0 10px rgba(255, 42, 109, 0.2);
+}
+
+.neon-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+.ai-buttons {
+    margin-top: 0.5rem;
+}
+
+.neon-btn {
+    display: inline-block;
+    padding: 1rem 2rem;
+    border: 1px solid var(--neon-pink);
+    border-radius: 30px;
+    background: transparent;
+    color: var(--text-main);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 5px var(--neon-pink);
+    box-shadow: 0 0 10px rgba(255, 42, 109, 0.2), inset 0 0 10px rgba(255, 42, 109, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.neon-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.neon-btn:hover {
+    background: rgba(255, 42, 109, 0.15);
+    box-shadow: 0 0 20px var(--neon-pink), inset 0 0 15px var(--neon-pink);
+    text-shadow: 0 0 8px #fff, 0 0 15px var(--neon-pink);
+    transform: scale(1.02);
+}
+
+.neon-btn:hover::before {
+    left: 100%;
+}
+
+.neon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    text-shadow: none;
+    border-color: #555;
+}
+
+.neon-btn:disabled:hover {
+    background: transparent;
+    transform: none;
+    box-shadow: none;
+}
+
+.preview-container {
+    margin: 2rem auto;
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    position: relative;
+    transition: opacity 0.5s ease;
+}
+
+.preview-container.hidden {
+    display: none;
+    opacity: 0;
+}
+
+.image-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    max-width: 48%; /* To fit two side by side */
+}
+
+.image-wrapper.hidden {
+    display: none;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 8px;
+    display: block;
+    object-fit: contain;
+}
+
+.speech-bubble {
+    position: absolute;
+    top: -40px;
+    background: rgba(25, 5, 20, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--neon-purple);
+    color: #fff;
+    padding: 1rem 1.5rem;
+    border-radius: 20px;
+    max-width: 250px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 15px rgba(181, 55, 242, 0.4);
+    z-index: 10;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.4;
+    transform: scale(0) translateY(10px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.speech-bubble.show {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+/* For image 1 (left) */
+.bubble-left {
+    left: 20px;
+    border-bottom-left-radius: 0;
+    transform-origin: bottom left;
+}
+.bubble-left::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    border-width: 15px 15px 0 0;
+    border-style: solid;
+    border-color: rgba(25, 5, 20, 0.85) transparent transparent transparent;
+    filter: drop-shadow(-1px 1px 1px var(--neon-purple));
+    display: block;
+    width: 0;
+}
+
+/* For image 2 (right) */
+.bubble-right {
+    right: 20px;
+    border-bottom-right-radius: 0;
+    transform-origin: bottom right;
+}
+.bubble-right::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    right: 0;
+    border-width: 15px 0 0 15px;
+    border-style: solid;
+    border-color: rgba(25, 5, 20, 0.85) transparent transparent transparent;
+    filter: drop-shadow(1px 1px 1px var(--neon-purple));
+    display: block;
+    width: 0;
+}
+
+.action-section {
+    margin-top: 1rem;
+}
+
+.generate-btn {
+    width: 100%;
+    font-size: 1.3rem;
+    padding: 1.2rem;
+    background: linear-gradient(135deg, rgba(255, 42, 109, 0.2), rgba(181, 55, 242, 0.2));
+}
+
+.secondary-action-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.outline-btn {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 1rem;
+    background: transparent;
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
+    text-shadow: none;
+    box-shadow: none;
+}
+
+.outline-btn:hover {
+    border-color: var(--neon-pink);
+    color: #fff;
+    background: rgba(255, 42, 109, 0.1);
+    box-shadow: 0 0 15px rgba(255, 42, 109, 0.3);
+}
+
+@media (max-width: 600px) {
+    .title { font-size: 2.2rem; }
+    .glass-card { padding: 1.5rem; }
+    .speech-bubble { 
+        right: -10px; 
+        font-size: 1rem; 
+        padding: 1rem 1.2rem; 
+        max-width: 200px;
+    }
+}

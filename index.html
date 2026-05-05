@@ -12,67 +12,107 @@
 </head>
 <body>
     <div class="background-animation"></div>
-    
-    <header class="hero">
-        <div class="hero-content fade-in-up">
-            <div class="avatar-container">
-                <img src="avatar.png" alt="平舘洋人のプロフィール画像" class="avatar">
-            </div>
-            <h1 class="name">平舘 洋人 <span class="name-en">Hiroto Hiradate</span></h1>
-            <p class="tagline">Exploring the Future with AI.</p>
-        </div>
-    </header>
 
-    <main>
-        <section id="about" class="section">
-            <div class="container fade-in-up">
-                <h2 class="section-title">About Me</h2>
-                <div class="card glass">
-                    <div class="card-content">
-                        <h3>興味・関心</h3>
-                        <p>現在最も関心を持っているのは、<strong>アメリカが今後どうなっていくのか</strong>という動向です。政治、経済、そしてテクノロジーの中心地として、世界にどのような影響を与えていくのかを注視しています。</p>
-                    </div>
+    <!-- 銃撃・エフェクト用コンテナ -->
+    <div id="effects-container"></div>
+
+    <!-- 降谷透のページ -->
+    <div id="furuya-page">
+        <header class="hero furuya-hero">
+            <div class="hero-content fade-in-up">
+                <div class="avatar-container">
+                    <img src="furuya_avatar.png" alt="降谷透のプロフィール画像" class="avatar furuya-avatar">
                 </div>
+                <h1 class="name">降谷 透 <span class="name-en">Toru Furuya</span></h1>
+                <p class="tagline">一般大学生 / ゲーマー</p>
             </div>
-        </section>
+        </header>
 
-        <section id="ai-vision" class="section">
-            <div class="container fade-in-up">
-                <h2 class="section-title">My View on AI</h2>
-                <div class="grid-2">
-                    <div class="card glass highlight-card">
-                        <div class="card-content">
-                            <h3>AI ＝ 薬の調合</h3>
-                            <p>私にとってAIは、「薬を調合するような存在」に近いと感じています。目的や状況に合わせて適切な成分（データやプロンプト）を組み合わせることで、大きな効果を発揮するツールだと捉えています。</p>
-                        </div>
-                    </div>
+        <main>
+            <section class="section">
+                <div class="container fade-in-up">
+                    <h2 class="section-title" style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); -webkit-background-clip: text;">About Me</h2>
                     <div class="card glass">
                         <div class="card-content">
-                            <h3>共に学ぶ姿勢</h3>
-                            <p>AIについてはまだ分からないこともたくさんあります。だからこそ、恐れるのではなく、<strong>一緒に学びながら向き合っていきたい</strong>と考えています。</p>
+                            <h3>プロフィール</h3>
+                            <p>都内の大学に通う一般大学生です。普段は近所のコンビニでアルバイトをしながら生活しています。</p>
+                            <br>
+                            <h3>趣味・関心</h3>
+                            <p>一番の趣味は<strong>ゲーム</strong>です。ジャンル問わず色々なゲームをプレイするのが大好きです。<br>また、最近はテクノロジーの進化に興味を持ち、<strong>AIに関しても</strong>少しずつ学び始めています。</p>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2026 Toru Furuya. All rights reserved.</p>
+        </footer>
+    </div>
 
-        <section id="project" class="section">
-            <div class="container fade-in-up">
-                <h2 class="section-title">Project Goal</h2>
-                <div class="card glass feature-card">
-                    <div class="card-content center-content">
-                        <div class="icon">💻</div>
-                        <h3>勘定科目の自動計算ツール</h3>
-                        <p>この授業を通して、簿記などの<strong>勘定科目を自動で計算・整理してくれるシステム</strong>を作ってみたいと考えています。AIやプログラミングの力を活用して、面倒な作業を効率化する実用的なツールを目指します。</p>
+    <!-- 平舘洋人のページ（最初は非表示） -->
+    <div id="hiradate-page" style="display: none; opacity: 0; transition: opacity 1.5s ease-in-out;">
+        <header class="hero">
+            <div class="hero-content fade-in-up">
+                <div class="avatar-container">
+                    <img src="avatar.png" alt="平舘洋人のプロフィール画像" class="avatar">
+                </div>
+                <h1 class="name">平舘 洋人 <span class="name-en">Hiroto Hiradate</span></h1>
+                <p class="tagline">Exploring the Future with AI.</p>
+            </div>
+        </header>
+
+        <main>
+            <section id="about" class="section">
+                <div class="container fade-in-up">
+                    <h2 class="section-title">About Me</h2>
+                    <div class="card glass">
+                        <div class="card-content">
+                            <h3>興味・関心</h3>
+                            <p>現在最も関心を持っているのは、<strong>アメリカが今後どうなっていくのか</strong>という動向です。政治、経済、そしてテクノロジーの中心地として、世界にどのような影響を与えていくのかを注視しています。</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
-    </main>
+            </section>
 
-    <footer>
-        <p>&copy; 2026 Hiroto Hiradate. All rights reserved.</p>
-    </footer>
+            <section id="ai-vision" class="section">
+                <div class="container fade-in-up">
+                    <h2 class="section-title">My View on AI</h2>
+                    <div class="grid-2">
+                        <div class="card glass highlight-card">
+                            <div class="card-content">
+                                <h3>AI ＝ 薬の調合</h3>
+                                <p>私にとってAIは、「薬を調合するような存在」に近いと感じています。目的や状況に合わせて適切な成分（データやプロンプト）を組み合わせることで、大きな効果を発揮するツールだと捉えています。</p>
+                            </div>
+                        </div>
+                        <div class="card glass">
+                            <div class="card-content">
+                                <h3>共に学ぶ姿勢</h3>
+                                <p>AIについてはまだ分からないこともたくさんあります。だからこそ、恐れるのではなく、<strong>一緒に学びながら向き合っていきたい</strong>と考えています。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="project" class="section">
+                <div class="container fade-in-up">
+                    <h2 class="section-title">Project Goal</h2>
+                    <div class="card glass feature-card">
+                        <div class="card-content center-content">
+                            <div class="icon">💻</div>
+                            <h3>勘定科目の自動計算ツール</h3>
+                            <p>この授業を通して、簿記などの<strong>勘定科目を自動で計算・整理してくれるシステム</strong>を作ってみたいと考えています。AIやプログラミングの力を活用して、面倒な作業を効率化する実用的なツールを目指します。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Hiroto Hiradate. All rights reserved.</p>
+        </footer>
+    </div>
 
     <script src="script.js"></script>
 </body>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexLedger | プレミアム簿記システム</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-chart-pie"></i> NexLedger
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-tab="journal"><i class="fa-solid fa-pen-to-square"></i> 仕訳帳</li>
+                <li data-tab="trial-balance"><i class="fa-solid fa-scale-balanced"></i> 残高試算表</li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header>
+                <h1>ダッシュボード</h1>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff" alt="User Avatar">
+                </div>
+            </header>
+
+            <!-- Tab: Journal (仕訳帳) -->
+            <section id="tab-journal" class="tab-content active">
+                <div class="card glass-card">
+                    <h2><i class="fa-solid fa-plus"></i> 新規仕訳入力</h2>
+                    <form id="journal-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="date">日付</label>
+                                <input type="date" id="date" required>
+                            </div>
+                            <div class="form-group flex-2">
+                                <label for="description">摘要（内容）</label>
+                                <input type="text" id="description" placeholder="例: Amazonで文房具を購入" required>
+                            </div>
+                        </div>
+                        
+                        <div class="entry-row">
+                            <!-- Debit (借方) -->
+                            <div class="side-container debit-side">
+                                <h3>借方 (Debit)</h3>
+                                <div class="form-group">
+                                    <label>勘定科目</label>
+                                    <select id="debit-account" required>
+                                        <option value="">選択してください</option>
+                                        <optgroup label="資産">
+                                            <option value="現金">現金</option>
+                                            <option value="普通預金">普通預金</option>
+                                            <option value="売掛金">売掛金</option>
+                                            <option value="備品">備品</option>
+                                        </optgroup>
+                                        <optgroup label="費用">
+                                            <option value="仕入">仕入</option>
+                                            <option value="消耗品費">消耗品費</option>
+                                            <option value="旅費交通費">旅費交通費</option>
+                                            <option value="水道光熱費">水道光熱費</option>
+                                            <option value="通信費">通信費</option>
+                                            <option value="支払家賃">支払家賃</option>
+                                            <option value="給料">給料</option>
+                                        </optgroup>
+                                        <optgroup label="負債">
+                                            <option value="買掛金">買掛金</option>
+                                            <option value="借入金">借入金</option>
+                                        </optgroup>
+                                    </optgroup>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>金額</label>
+                                    <input type="number" id="debit-amount" min="1" placeholder="0" required>
+                                </div>
+                            </div>
+
+                            <div class="balance-icon">
+                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                            </div>
+
+                            <!-- Credit (貸方) -->
+                            <div class="side-container credit-side">
+                                <h3>貸方 (Credit)</h3>
+                                <div class="form-group">
+                                    <label>勘定科目</label>
+                                    <select id="credit-account" required>
+                                        <option value="">選択してください</option>
+                                        <optgroup label="資産">
+                                            <option value="現金">現金</option>
+                                            <option value="普通預金">普通預金</option>
+                                            <option value="売掛金">売掛金</option>
+                                            <option value="備品">備品</option>
+                                        </optgroup>
+                                        <optgroup label="負債">
+                                            <option value="買掛金">買掛金</option>
+                                            <option value="借入金">借入金</option>
+                                        </optgroup>
+                                        <optgroup label="純資産">
+                                            <option value="資本金">資本金</option>
+                                        </optgroup>
+                                        <optgroup label="収益">
+                                            <option value="売上">売上</option>
+                                            <option value="受取利息">受取利息</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>金額</label>
+                                    <input type="number" id="credit-amount" min="1" placeholder="0" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="error-message" class="error-message"></div>
+
+                        <button type="submit" class="btn-submit">
+                            <i class="fa-solid fa-check"></i> 登録する
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card glass-card mt-20">
+                    <h2><i class="fa-solid fa-book"></i> 仕訳履歴</h2>
+                    <div class="table-responsive">
+                        <table class="data-table" id="journal-table">
+                            <thead>
+                                <tr>
+                                    <th>日付</th>
+                                    <th>借方科目</th>
+                                    <th>借方金額</th>
+                                    <th>貸方科目</th>
+                                    <th>貸方金額</th>
+                                    <th>摘要</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Entries will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Trial Balance (残高試算表) -->
+            <section id="tab-trial-balance" class="tab-content">
+                <div class="card glass-card">
+                    <div class="header-with-actions">
+                        <h2><i class="fa-solid fa-scale-balanced"></i> 合計残高試算表 (Trial Balance)</h2>
+                        <span class="status-badge" id="tb-status">一致</span>
+                    </div>
+                    <p class="subtitle">入力された仕訳データに基づき、自動計算された勘定科目ごとの合計・残高です。</p>
+                    
+                    <div class="table-responsive mt-20">
+                        <table class="data-table trial-balance-table" id="tb-table">
+                            <thead>
+                                <tr>
+                                    <th colspan="2">借方 (Debit)</th>
+                                    <th rowspan="2" class="account-col">勘定科目</th>
+                                    <th colspan="2">貸方 (Credit)</th>
+                                </tr>
+                                <tr>
+                                    <th>残高</th>
+                                    <th>合計</th>
+                                    <th>合計</th>
+                                    <th>残高</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Trial balance will be injected here -->
+                            </tbody>
+                            <tfoot id="tb-footer">
+                                <!-- Totals will be injected here -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

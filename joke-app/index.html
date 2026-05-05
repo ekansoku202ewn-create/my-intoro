@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midnight Whisper | AI Joke App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Noto+Serif+JP:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+    </div>
+    
+    <main class="container">
+        <header class="app-header">
+            <h1 class="title">Midnight Whisper</h1>
+            <p class="subtitle">秘密のセリフ、聞かせてあげる…</p>
+        </header>
+
+        <section class="glass-card main-card">
+            <div class="upload-section">
+                <p class="instruction">好きな画像を選んでね💋<br><small style="font-size: 0.8rem; color: var(--text-muted);">（2枚選ぶと掛け合いになります）</small></p>
+                <div class="upload-buttons">
+                    <label for="image-upload-1" class="neon-btn upload-btn small-btn">
+                        <span>左の画像</span>
+                        <input type="file" id="image-upload-1" accept="image/*" class="hidden-input">
+                    </label>
+                    <label for="image-upload-2" class="neon-btn upload-btn small-btn">
+                        <span>右の画像</span>
+                        <input type="file" id="image-upload-2" accept="image/*" class="hidden-input">
+                    </label>
+                </div>
+            </div>
+
+            <div class="ai-generation-section">
+                <p class="instruction ai-instruction">または、AIに作ってもらう✨</p>
+                <input type="text" id="ai-prompt" class="neon-input" placeholder="どんな画像がいい？ (例: サイバーパンクな街並み)">
+                <div class="upload-buttons ai-buttons">
+                    <button id="ai-generate-1" class="neon-btn upload-btn small-btn">左に生成 🪄</button>
+                    <button id="ai-generate-2" class="neon-btn upload-btn small-btn">右に生成 🪄</button>
+                </div>
+            </div>
+
+            <div id="image-preview-container" class="preview-container hidden">
+                <!-- Image 1 -->
+                <div class="image-wrapper" id="wrapper-1">
+                    <img id="image-preview-1" src="" alt="プレビュー画像1" class="preview-image">
+                    <div id="speech-bubble-1" class="speech-bubble bubble-left hidden">
+                        <p id="joke-text-1"></p>
+                    </div>
+                </div>
+                <!-- Image 2 (Hidden by default until 2 images are uploaded) -->
+                <div class="image-wrapper hidden" id="wrapper-2">
+                    <img id="image-preview-2" src="" alt="プレビュー画像2" class="preview-image">
+                    <div id="speech-bubble-2" class="speech-bubble bubble-right hidden">
+                        <p id="joke-text-2"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-section">
+                <button id="generate-btn" class="neon-btn generate-btn" disabled>囁かせる 🫦</button>
+            </div>
+
+            <div class="secondary-action-section">
+                <button id="find-hotel-btn" class="neon-btn outline-btn">今すぐ近くのホテルを探す 🏩</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
