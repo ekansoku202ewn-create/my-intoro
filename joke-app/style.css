@@ -145,6 +145,23 @@ body {
     color: var(--neon-purple);
 }
 
+.ai-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.style-select {
+    width: 40%;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.prompt-input {
+    width: 60%;
+    margin-bottom: 0;
+}
+
 .neon-input {
     width: 100%;
     padding: 1rem;
@@ -373,5 +390,15 @@ body {
         font-size: 1rem; 
         padding: 1rem 1.2rem; 
         max-width: 200px;
+    }
+    .ai-input-group {
+        flex-direction: column;
+    }
+    .style-select, .prompt-input {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    .prompt-input {
+        margin-bottom: 0;
     }
 }

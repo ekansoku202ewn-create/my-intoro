@@ -76,12 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let voice;
             if (isFemaleVoice) {
                 voice = jaVoices.find(v => v.name.includes('Haruka') || v.name.includes('Nanami') || v.name.includes('Female')) || jaVoices[0];
-                utterance.pitch = 1.3; 
-                utterance.rate = 0.85; 
+                // よりエロく、ねっとりとした艶のある声に調整
+                utterance.pitch = 1.0; // 高すぎず、やや落ち着いた声
+                utterance.rate = 0.65; // さらにゆっくりと囁くスピード
             } else {
                 voice = jaVoices.find(v => v.name.includes('Keita') || v.name.includes('Male')) || jaVoices[0];
-                utterance.pitch = 0.8; 
-                utterance.rate = 0.9;
+                // 男性の声も少し低くゆっくりに
+                utterance.pitch = 0.75; 
+                utterance.rate = 0.8;
             }
             utterance.voice = voice;
         }
@@ -138,8 +140,25 @@ document.addEventListener('DOMContentLoaded', () => {
         btnElement.innerHTML = "生成中...⏳";
         btnElement.disabled = true;
 
-        // 妖艶な雰囲気を追加するため、少しプロンプトを装飾
-        const enhancedPrompt = prompt + ", masterpiece, high quality, neon lighting, dark aesthetic, seductive";
+        // リアル or 二次元のスタイル選択
+        let stylePrompt = "";
+        const styleSelect = document.getElementById('ai-style-type');
+        if (styleSelect && styleSelect.value === "anime") {
+            stylePrompt = ", anime style, 2d illustration, flat color";
+        } else {
+            stylePrompt = ", photorealistic, raw photo, realistic, 8k resolution";
+        }
+
+        // 日本語の特定キーワードを検知して、AIが理解しやすい英語のタグを追加する
+        let extraKeywords = "";
+        if (prompt.includes("制服")) extraKeywords += ", school uniform, sailor suit";
+        if (prompt.includes("体操服")) extraKeywords += ", japanese gym uniform, gym shirt";
+        if (prompt.includes("ブルマ")) extraKeywords += ", gym bloomers, buruma";
+        if (prompt.includes("水着")) extraKeywords += ", swimsuit, bikini";
+        if (prompt.includes("メイド")) extraKeywords += ", maid outfit";
+
+        // ユーザーの要望に加え、スタイル指定、エロ（erotic）と露出度高めの要素を付与する隠しプロンプト
+        const enhancedPrompt = prompt + stylePrompt + extraKeywords + ", masterpiece, best quality, highly detailed, erotic, revealing clothes";
         const encodedPrompt = encodeURIComponent(enhancedPrompt);
         const randomSeed = Math.floor(Math.random() * 1000000);
         const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=400&height=400&nologo=true&seed=${randomSeed}`;

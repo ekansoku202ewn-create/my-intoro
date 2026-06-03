@@ -38,7 +38,13 @@
 
             <div class="ai-generation-section">
                 <p class="instruction ai-instruction">または、AIに作ってもらう✨</p>
-                <input type="text" id="ai-prompt" class="neon-input" placeholder="どんな画像がいい？ (例: サイバーパンクな街並み)">
+                <div class="ai-input-group">
+                    <select id="ai-style-type" class="neon-input style-select">
+                        <option value="realistic">リアル（実写風）</option>
+                        <option value="anime">二次元（アニメ風）</option>
+                    </select>
+                    <input type="text" id="ai-prompt" class="neon-input prompt-input" placeholder="どんな画像がいい？ (例: 教室で微笑むJK)">
+                </div>
                 <div class="upload-buttons ai-buttons">
                     <button id="ai-generate-1" class="neon-btn upload-btn small-btn">左に生成 🪄</button>
                     <button id="ai-generate-2" class="neon-btn upload-btn small-btn">右に生成 🪄</button>

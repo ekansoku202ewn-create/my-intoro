@@ -1,237 +1,386 @@
-// App State
+// Data Storage
 let journals = [];
 
-// Initialize
+// DOM Loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('date').value = today;
-
-    // Tab Navigation
-    const navLinks = document.querySelectorAll('.nav-links li');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            // Remove active class from all
-            navLinks.forEach(l => l.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-
-            // Add active class to clicked tab
-            link.classList.add('active');
-            const tabId = link.getAttribute('data-tab');
+    // Tab Navigation Logic
+    document.querySelectorAll('.nav-links li').forEach(link => {
+        link.addEventListener('click', (e) => {
+            document.querySelectorAll('.nav-links li').forEach(l => l.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            e.currentTarget.classList.add('active');
+            const tabId = e.currentTarget.getAttribute('data-tab');
             document.getElementById(`tab-${tabId}`).classList.add('active');
-
-            // If switching to trial balance, recalculate
-            if(tabId === 'trial-balance') {
-                calculateTrialBalance();
-            }
         });
     });
 
-    // Form Submission
-    document.getElementById('journal-form').addEventListener('submit', handleJournalSubmit);
-    
-    // Add some sample data for demonstration
-    addSampleData();
+    // CSV Import
+    document.getElementById('btn-import-csv').addEventListener('click', handleCSVImport);
+
+    // AI Audit
+    document.getElementById('btn-run-audit').addEventListener('click', runAIAudit);
+
+    // Load from LocalStorage
+    const saved = localStorage.getItem('nexledger_journals');
+    if (saved) {
+        journals = JSON.parse(saved);
+        renderJournalTable();
+    }
 });
+
+function saveJournals() {
+    localStorage.setItem('nexledger_journals', JSON.stringify(journals));
+}
 
 // Utility to format currency
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('ja-JP').format(amount);
 };
 
-// Handle Form Submit
-function handleJournalSubmit(e) {
-    e.preventDefault();
-    const errorMsg = document.getElementById('error-message');
-    errorMsg.textContent = '';
-
-    const date = document.getElementById('date').value;
-    const desc = document.getElementById('description').value;
-    const debitAccount = document.getElementById('debit-account').value;
-    const debitAmount = parseInt(document.getElementById('debit-amount').value, 10);
-    const creditAccount = document.getElementById('credit-account').value;
-    const creditAmount = parseInt(document.getElementById('credit-amount').value, 10);
-
-    // Validation
-    if (debitAmount !== creditAmount) {
-        errorMsg.textContent = 'エラー: 借方金額と貸方金額が一致していません。貸借一致の原則に従ってください。';
-        return;
-    }
-
-    if (debitAccount === creditAccount) {
-        errorMsg.textContent = 'エラー: 借方と貸方に同じ勘定科目は設定できません。';
-        return;
-    }
-
-    const entry = {
-        id: Date.now(),
-        date,
-        description: desc,
-        debitAccount,
-        debitAmount,
-        creditAccount,
-        creditAmount
-    };
-
-    journals.push(entry);
-    
-    // Reset inputs but keep date
-    document.getElementById('description').value = '';
-    document.getElementById('debit-amount').value = '';
-    document.getElementById('credit-amount').value = '';
-    document.getElementById('debit-account').value = '';
-    document.getElementById('credit-account').value = '';
-    
-    // Update UI
-    renderJournalTable(entry);
-    
-    // Toast or indication (simulated by smooth render)
-}
-
-function renderJournalTable(newEntry = null) {
+// Render the Journal Table
+function renderJournalTable() {
     const tbody = document.querySelector('#journal-table tbody');
-    
-    if(newEntry) {
-        const tr = document.createElement('tr');
-        tr.className = 'new-row';
-        tr.innerHTML = `
-            <td>${newEntry.date}</td>
-            <td style="color: var(--debit-color); font-weight: 500;">${newEntry.debitAccount}</td>
-            <td class="amount-cell">${formatCurrency(newEntry.debitAmount)}</td>
-            <td style="color: var(--credit-color); font-weight: 500;">${newEntry.creditAccount}</td>
-            <td class="amount-cell">${formatCurrency(newEntry.creditAmount)}</td>
-            <td>${newEntry.description}</td>
-        `;
-        tbody.prepend(tr);
-    } else {
-        tbody.innerHTML = '';
-        const sortedJournals = [...journals].sort((a,b) => new Date(b.date) - new Date(a.date));
-        sortedJournals.forEach(entry => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${entry.date}</td>
-                <td style="color: var(--debit-color); font-weight: 500;">${entry.debitAccount}</td>
-                <td class="amount-cell">${formatCurrency(entry.debitAmount)}</td>
-                <td style="color: var(--credit-color); font-weight: 500;">${entry.creditAccount}</td>
-                <td class="amount-cell">${formatCurrency(entry.creditAmount)}</td>
-                <td>${entry.description}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-}
-
-// Automatically Calculate Trial Balance (残高試算表)
-// 資産・費用は借方残高、負債・純資産・収益は貸方残高になるのが通常
-const accountCategories = {
-    '現金': 'asset', '普通預金': 'asset', '売掛金': 'asset', '備品': 'asset',
-    '買掛金': 'liability', '借入金': 'liability',
-    '資本金': 'equity',
-    '売上': 'revenue', '受取利息': 'revenue',
-    '仕入': 'expense', '消耗品費': 'expense', '旅費交通費': 'expense', 
-    '水道光熱費': 'expense', '通信費': 'expense', '支払家賃': 'expense', '給料': 'expense'
-};
-
-function calculateTrialBalance() {
-    const accounts = {};
-
-    // Aggregate
-    journals.forEach(entry => {
-        // Process Debit
-        if(!accounts[entry.debitAccount]) {
-            accounts[entry.debitAccount] = { debit: 0, credit: 0, category: accountCategories[entry.debitAccount] };
-        }
-        accounts[entry.debitAccount].debit += entry.debitAmount;
-
-        // Process Credit
-        if(!accounts[entry.creditAccount]) {
-            accounts[entry.creditAccount] = { debit: 0, credit: 0, category: accountCategories[entry.creditAccount] };
-        }
-        accounts[entry.creditAccount].credit += entry.creditAmount;
-    });
-
-    // Render UI
-    const tbody = document.querySelector('#tb-table tbody');
-    const tfoot = document.getElementById('tb-footer');
     tbody.innerHTML = '';
     
-    let totalDebitSum = 0;
-    let totalCreditSum = 0;
-    let totalDebitBalance = 0;
-    let totalCreditBalance = 0;
-
-    // Standard ordering: Asset -> Liability -> Equity -> Revenue -> Expense
-    const order = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-    const sortedAccountNames = Object.keys(accounts).sort((a, b) => {
-        return order.indexOf(accounts[a].category) - order.indexOf(accounts[b].category);
-    });
-
-    sortedAccountNames.forEach(accName => {
-        const data = accounts[accName];
-        let debitBalance = 0;
-        let creditBalance = 0;
-
-        // Calculate Balance
-        if (data.category === 'asset' || data.category === 'expense') {
-            debitBalance = data.debit - data.credit;
-            if(debitBalance < 0) {
-                creditBalance = Math.abs(debitBalance);
-                debitBalance = 0;
-            }
-        } else {
-            creditBalance = data.credit - data.debit;
-            if(creditBalance < 0) {
-                debitBalance = Math.abs(creditBalance);
-                creditBalance = 0;
-            }
-        }
-
-        totalDebitSum += data.debit;
-        totalCreditSum += data.credit;
-        totalDebitBalance += debitBalance;
-        totalCreditBalance += creditBalance;
-
+    if (journals.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">データがありません。CSVやExcelファイルを取り込んでください。</td></tr>';
+        return;
+    }
+    
+    // Sort by Date descending
+    const sortedJournals = [...journals].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    sortedJournals.forEach((entry) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="amount-cell" style="color: var(--debit-color)">${debitBalance > 0 ? formatCurrency(debitBalance) : ''}</td>
-            <td class="amount-cell">${data.debit > 0 ? formatCurrency(data.debit) : ''}</td>
-            <td class="account-col">${accName}</td>
-            <td class="amount-cell">${data.credit > 0 ? formatCurrency(data.credit) : ''}</td>
-            <td class="amount-cell" style="color: var(--credit-color)">${creditBalance > 0 ? formatCurrency(creditBalance) : ''}</td>
+            <td>${entry.date}</td>
+            <td class="debit-color">${entry.debitAccount}</td>
+            <td class="amount-cell debit-color">${formatCurrency(entry.debitAmount)}</td>
+            <td class="credit-color">${entry.creditAccount}</td>
+            <td class="amount-cell credit-color">${formatCurrency(entry.creditAmount)}</td>
+            <td>${entry.description}</td>
         `;
         tbody.appendChild(tr);
     });
-
-    tfoot.innerHTML = `
-        <tr>
-            <td class="amount-cell" style="color: var(--debit-color)">${formatCurrency(totalDebitBalance)}</td>
-            <td class="amount-cell">${formatCurrency(totalDebitSum)}</td>
-            <td class="account-col">合計</td>
-            <td class="amount-cell">${formatCurrency(totalCreditSum)}</td>
-            <td class="amount-cell" style="color: var(--credit-color)">${formatCurrency(totalCreditBalance)}</td>
-        </tr>
-    `;
-
-    // Update Status Badge
-    const badge = document.getElementById('tb-status');
-    if(totalDebitSum === totalCreditSum && totalDebitBalance === totalCreditBalance) {
-        badge.textContent = '貸借一致';
-        badge.className = 'status-badge';
-    } else {
-        badge.textContent = '貸借不一致エラー';
-        badge.className = 'status-badge error';
-    }
 }
 
-// Sample Data Injection for UI preview
-function addSampleData() {
-    const today = new Date().toISOString().split('T')[0];
-    journals = [
-        { id: 1, date: today, description: '事業用口座への出資', debitAccount: '普通預金', debitAmount: 1000000, creditAccount: '資本金', creditAmount: 1000000 },
-        { id: 2, date: today, description: '事務用品の購入', debitAccount: '消耗品費', debitAmount: 5000, creditAccount: '現金', creditAmount: 5000 },
-        { id: 3, date: today, description: '商品Aの販売', debitAccount: '売掛金', debitAmount: 50000, creditAccount: '売上', creditAmount: 50000 }
-    ];
-    renderJournalTable();
+// CSV Import Logic
+function handleCSVImport() {
+    const fileInput = document.getElementById('csv-file-input');
+    const errorMsg = document.getElementById('csv-error-message');
+    errorMsg.textContent = '';
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        errorMsg.textContent = 'エラー: ファイルを選択してください。';
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        try {
+            const data = e.target.result;
+            const workbook = XLSX.read(data, { type: 'array' });
+            const newEntries = [];
+            
+            for (const sheetName of workbook.SheetNames) {
+                // スキップロジック（シート名で判定）
+                if (sheetName.includes('試算') || sheetName.includes('残高') || sheetName.includes('集計') || sheetName.includes('損益') || sheetName.includes('貸借') || sheetName.includes('元帳')) {
+                    continue; // 試算表などのシートはスキップ
+                }
+
+                const worksheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                
+                if (!rows || rows.length === 0) continue;
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const cols = rows[i];
+                    
+                    if (!cols || cols.length === 0 || cols.every(c => String(c).trim() === '')) continue; 
+                    
+                    const firstCol = String(cols[0]).trim();
+                    // スキップロジック（行の見出しで判定）
+                    if (['会社名', '会計期間', '業種', '備考', '日付', '勘定科目', '科目'].includes(firstCol)) continue;
+                    
+                    if (cols.length < 6) {
+                        errorMsg.textContent = `エラー: シート「${sheetName}」の${i+1}行目のデータが不足しています。内容: 「${cols.join(', ')}」`;
+                        return;
+                    }
+                    
+                    let dateStr = String(cols[0]).trim();
+                    if (!isNaN(dateStr) && Number(dateStr) > 40000) {
+                        const dateObj = new Date(Math.round((Number(dateStr) - 25569) * 86400 * 1000));
+                        dateStr = dateObj.toISOString().split('T')[0];
+                    }
+
+                    const debitAccount = String(cols[1]).trim();
+                    const debitAmount = parseInt(String(cols[2]).replace(/,/g, '').trim(), 10);
+                    const creditAccount = String(cols[3]).trim();
+                    const creditAmount = parseInt(String(cols[4]).replace(/,/g, '').trim(), 10);
+                    const description = String(cols[5]).trim();
+                    
+                    if (isNaN(debitAmount) || isNaN(creditAmount)) {
+                        errorMsg.textContent = `エラー: シート「${sheetName}」の${i+1}行目の金額が数値ではありません。`;
+                        return;
+                    }
+                    
+                    if (debitAmount !== creditAmount) {
+                        errorMsg.textContent = `エラー: シート「${sheetName}」の${i+1}行目の借方と貸方の金額が一致しません。`;
+                        return;
+                    }
+                    
+                    newEntries.push({
+                        id: Date.now() + newEntries.length,
+                        date: dateStr,
+                        description,
+                        debitAccount,
+                        debitAmount,
+                        creditAccount,
+                        creditAmount
+                    });
+                }
+            }
+            
+            if (newEntries.length === 0) {
+                errorMsg.textContent = 'エラー: 取り込める仕訳データが見つかりませんでした。';
+                return;
+            }
+            
+            const mode = document.querySelector('input[name="import-mode"]:checked').value;
+            if (mode === 'overwrite') {
+                journals = newEntries;
+            } else {
+                journals = journals.concat(newEntries);
+            }
+            
+            fileInput.value = '';
+            renderJournalTable();
+            saveJournals();
+            alert(`${newEntries.length}件の仕訳データをインポートしました。\n続いて「AI監査・異常検知」タブへ進んでください。`);
+            
+        } catch (err) {
+            errorMsg.textContent = 'ファイルの読み込み中にエラーが発生しました。ExcelやCSV以外のファイルの可能性があります。';
+            console.error(err);
+        }
+    };
+    
+    reader.onerror = () => {
+        errorMsg.textContent = 'ファイルの読み込みに失敗しました。';
+    };
+    
+    reader.readAsArrayBuffer(file);
+}
+
+// AI Audit Logic (疑似AI監査)
+function runAIAudit() {
+    const btn = document.getElementById('btn-run-audit');
+    const loading = document.getElementById('audit-loading');
+    const resultsContainer = document.getElementById('audit-results-container');
+    const resultsList = document.getElementById('audit-results-list');
+    
+    if (journals.length === 0) {
+        alert("監査するデータがありません。先にデータを取り込んでください。");
+        return;
+    }
+
+    // UI Feedback
+    btn.style.display = 'none';
+    loading.style.display = 'block';
+    resultsContainer.style.display = 'none';
+    resultsList.innerHTML = '';
+    
+    setTimeout(() => {
+        const anomalies = detectAnomalies(journals);
+        
+        loading.style.display = 'none';
+        btn.style.display = 'inline-block';
+        btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> 再監査を実行する';
+        
+        if (anomalies.length === 0) {
+            resultsList.innerHTML = `
+                <div class="card glass-card" style="border-left: 4px solid var(--success);">
+                    <h4 style="color: var(--success);"><i class="fa-solid fa-circle-check"></i> 異常は見つかりませんでした</h4>
+                    <p style="margin-top: 0.5rem; color: var(--text-main);">データは非常にクリーンで正常です。不審な取引は見当たりません。</p>
+                </div>
+            `;
+        } else {
+            anomalies.forEach(anomaly => {
+                resultsList.innerHTML += `
+                    <div class="card glass-card" style="border-left: 4px solid var(--danger); margin-bottom: 1rem;">
+                        <h4 style="color: var(--danger); margin-bottom: 0.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${anomaly.title}</h4>
+                        <p style="color: var(--text-main); font-size: 0.95rem; margin-bottom: 1rem;"><strong>該当データ:</strong> ${anomaly.detail}</p>
+                        <div style="padding: 1rem; background: rgba(0,255,136,0.1); border-radius: 8px; border-left: 3px solid var(--success);">
+                            <p style="color: var(--success); margin:0; font-size: 0.95rem;"><strong><i class="fa-solid fa-lightbulb"></i> AIからの改善提案:</strong> ${anomaly.suggestion}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        resultsContainer.style.display = 'block';
+        
+        generateAnalysisReport();
+        
+    }, 1500); // Simulate API latency
+}
+
+function detectAnomalies(data) {
+    const anomalies = [];
+    const seen = new Set();
+    
+    data.forEach((entry) => {
+        // 1. High Amount Anomaly
+        if (entry.debitAmount >= 100000 && ['消耗品費', '交際費', '通信費', '水道光熱費'].includes(entry.debitAccount)) {
+            anomalies.push({
+                title: '異常に高額な経費を検知',
+                detail: `${entry.date} - ${entry.debitAccount}: ${formatCurrency(entry.debitAmount)}円 (${entry.description})`,
+                suggestion: `${entry.debitAccount}として10万円を超える支出は通常よりもかなり高額です。固定資産（備品など）として計上すべきものでないか確認するか、コスト削減のための相見積もりを推奨します。`
+            });
+        }
+        
+        // 2. Exact Duplicate Check (same date, same accounts, same amount)
+        const dupKey = `${entry.date}-${entry.debitAccount}-${entry.debitAmount}-${entry.creditAccount}`;
+        if (seen.has(dupKey)) {
+            anomalies.push({
+                title: '重複仕訳の疑い',
+                detail: `${entry.date} に ${formatCurrency(entry.debitAmount)}円 の ${entry.debitAccount} が複数回記録されています。`,
+                suggestion: '二重入力（ダブルカウント）の可能性があります。入力ミスがないか、または意図的な分割入力か確認してください。'
+            });
+        }
+        seen.add(dupKey);
+        
+        // 3. Weekend Transaction
+        const d = new Date(entry.date);
+        if (!isNaN(d.getTime()) && (d.getDay() === 0 || d.getDay() === 6)) {
+            if (['旅費交通費', '交際費', '消耗品費'].includes(entry.debitAccount)) {
+                 anomalies.push({
+                    title: '休日における不自然な経費',
+                    detail: `${entry.date} (休日) - ${entry.debitAccount}: ${formatCurrency(entry.debitAmount)}円 (${entry.description})`,
+                    suggestion: '休日の経費が計上されています。プライベートな支出が混ざっていないか、業務関連性が証明できる領収書が揃っているか確認してください。'
+                });
+            }
+        }
+    });
+    
+    return anomalies;
+}
+
+// Financial Analysis Report Logic (財務分析)
+// Account Categories for Analysis
+const accountCategories = {
+    '現金': 'asset',
+    '普通預金': 'asset',
+    '売掛金': 'asset',
+    '備品': 'asset',
+    '買掛金': 'liability',
+    '借入金': 'liability',
+    '資本金': 'equity',
+    '売上': 'revenue',
+    '受取利息': 'revenue',
+    '仕入': 'expense',
+    '消耗品費': 'expense',
+    '旅費交通費': 'expense',
+    '水道光熱費': 'expense',
+    '通信費': 'expense',
+    '支払家賃': 'expense',
+    '給料': 'expense',
+    '交際費': 'expense' // Added just in case
+};
+
+function generateAnalysisReport() {
+    document.getElementById('analysis-empty-state').style.display = 'none';
+    document.getElementById('analysis-report-container').style.display = 'block';
+    
+    let totalRevenue = 0;
+    let totalExpense = 0;
+    const expenseBreakdown = {};
+    
+    journals.forEach(entry => {
+        // Fallback defaults if category is not found (treat as neutral or infer)
+        const debitCat = accountCategories[entry.debitAccount] || 'asset';
+        const creditCat = accountCategories[entry.creditAccount] || 'liability';
+        
+        if (debitCat === 'expense') {
+            totalExpense += entry.debitAmount;
+            expenseBreakdown[entry.debitAccount] = (expenseBreakdown[entry.debitAccount] || 0) + entry.debitAmount;
+        }
+        if (creditCat === 'revenue') {
+            totalRevenue += entry.creditAmount;
+        }
+        
+        // Handling negative entries or returns
+        if (creditCat === 'expense') {
+            totalExpense -= entry.creditAmount;
+            expenseBreakdown[entry.creditAccount] = (expenseBreakdown[entry.creditAccount] || 0) - entry.creditAmount;
+        }
+        if (debitCat === 'revenue') {
+            totalRevenue -= entry.debitAmount;
+        }
+    });
+    
+    const netIncome = totalRevenue - totalExpense;
+    
+    document.getElementById('score-revenue').textContent = formatCurrency(totalRevenue);
+    document.getElementById('score-expense').textContent = formatCurrency(totalExpense);
+    
+    const netIncomeEl = document.getElementById('score-netincome');
+    netIncomeEl.textContent = formatCurrency(netIncome);
+    netIncomeEl.style.color = netIncome >= 0 ? 'var(--success)' : 'var(--danger)';
+    
+    let healthScore = 'C';
+    let healthColor = 'var(--danger)';
+    if (netIncome > 0 && totalRevenue >= totalExpense * 1.2) {
+        healthScore = 'S';
+        healthColor = 'var(--success)';
+    } else if (netIncome > 0) {
+        healthScore = 'A';
+        healthColor = 'var(--success)';
+    } else if (netIncome === 0 && totalRevenue === 0) {
+        healthScore = '-';
+        healthColor = 'var(--text-muted)';
+    } else if (netIncome >= -50000) {
+        healthScore = 'B';
+        healthColor = 'var(--warning)';
+    } else {
+        healthScore = 'C';
+        healthColor = 'var(--danger)';
+    }
+    
+    const healthEl = document.getElementById('score-health');
+    healthEl.textContent = healthScore;
+    healthEl.style.color = healthColor;
+    
+    let commentHtml = '';
+    if (healthScore === 'S' || healthScore === 'A') {
+        commentHtml = '<p>現在の財務状態は<strong>非常に健全</strong>です。収益が費用を上回っており、安定した利益を生み出せています。このままのペースを維持しつつ、余剰資金を将来の成長投資へ回すことを検討してください。</p>';
+    } else if (healthScore === 'B') {
+        commentHtml = '<p>わずかに赤字、または収支トントンです。<strong>固定費の削減</strong>や、単価アップによる売上の向上を図る必要があります。無駄な支出がないか内訳を確認してください。</p>';
+    } else if (healthScore === 'C') {
+        commentHtml = '<p style="color: var(--danger);"><strong>重大な警告:</strong> 大きな赤字が発生しています。資金繰りが悪化する前に、不要不急の経費を直ちにカットし、抜本的な収益改善策を実行する必要があります。</p>';
+    } else {
+        commentHtml = '<p>分析に十分なデータがありません。</p>';
+    }
+    document.getElementById('analysis-ai-comments').innerHTML = commentHtml;
+    
+    const sortedExpenses = Object.entries(expenseBreakdown).sort((a, b) => b[1] - a[1]);
+    const tbody = document.querySelector('#expense-breakdown-table tbody');
+    tbody.innerHTML = '';
+    
+    if (totalExpense > 0) {
+        sortedExpenses.forEach(([account, amount]) => {
+            if (amount <= 0) return;
+            const percent = ((amount / totalExpense) * 100).toFixed(1);
+            tbody.innerHTML += `
+                <tr>
+                    <td>${account}</td>
+                    <td class="amount-cell">${formatCurrency(amount)}</td>
+                    <td class="amount-cell">${percent}%</td>
+                </tr>
+            `;
+        });
+    } else {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">費用のデータがありません</td></tr>';
+    }
 }
