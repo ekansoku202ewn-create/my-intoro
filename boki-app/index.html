@@ -18,6 +18,17 @@
                 <i class="fa-solid fa-robot"></i>
                 <span>NexAudit AI</span>
             </div>
+            
+            <div class="project-selector">
+                <select id="project-select" class="form-control" title="プロジェクトを切り替え">
+                    <!-- Options injected by JS -->
+                </select>
+                <div class="project-actions">
+                    <button id="btn-new-project" class="btn-action btn-sm" title="新しいデータ枠を作成"><i class="fa-solid fa-plus"></i></button>
+                    <button id="btn-delete-project" class="btn-action btn-sm danger" title="現在のデータを削除"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+
             <ul class="nav-links">
                 <li class="active" data-tab="import"><i class="fa-solid fa-file-csv"></i> データ取込</li>
                 <li data-tab="ai-audit"><i class="fa-solid fa-magnifying-glass-chart"></i> AI監査・異常検知</li>

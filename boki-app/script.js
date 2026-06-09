@@ -1,4 +1,6 @@
 // Data Storage
+let projects = [];
+let activeProjectId = null;
 let journals = [];
 
 // DOM Loaded
@@ -21,16 +23,133 @@ document.addEventListener('DOMContentLoaded', () => {
     // AI Audit
     document.getElementById('btn-run-audit').addEventListener('click', runAIAudit);
 
-    // Load from LocalStorage
-    const saved = localStorage.getItem('nexledger_journals');
-    if (saved) {
-        journals = JSON.parse(saved);
-        renderJournalTable();
-    }
+    // Project Management Events
+    document.getElementById('project-select').addEventListener('change', (e) => {
+        switchProject(e.target.value);
+    });
+    document.getElementById('btn-new-project').addEventListener('click', createProject);
+    document.getElementById('btn-delete-project').addEventListener('click', deleteProject);
+
+    // Load Projects from LocalStorage
+    loadProjects();
 });
 
+// Project Management Logic
+function loadProjects() {
+    const savedProjects = localStorage.getItem('nexledger_projects');
+    const savedActiveId = localStorage.getItem('nexledger_active_project');
+    
+    if (savedProjects) {
+        projects = JSON.parse(savedProjects);
+    } else {
+        // Default initial project
+        projects = [{ id: 'default_' + Date.now(), name: 'デフォルトデータ' }];
+        localStorage.setItem('nexledger_projects', JSON.stringify(projects));
+    }
+    
+    // Set active project
+    activeProjectId = savedActiveId && projects.find(p => p.id === savedActiveId) 
+        ? savedActiveId 
+        : projects[0].id;
+        
+    renderProjectSelect();
+    switchProject(activeProjectId);
+}
+
+function saveProjects() {
+    localStorage.setItem('nexledger_projects', JSON.stringify(projects));
+    localStorage.setItem('nexledger_active_project', activeProjectId);
+}
+
+function renderProjectSelect() {
+    const select = document.getElementById('project-select');
+    select.innerHTML = '';
+    projects.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.name;
+        if (p.id === activeProjectId) option.selected = true;
+        select.appendChild(option);
+    });
+}
+
+function createProject() {
+    const name = prompt("新しいプロジェクト（データ枠）の名前を入力してください\n例：「A社 2024年度」");
+    if (!name || name.trim() === "") return;
+    
+    const newProject = {
+        id: 'proj_' + Date.now(),
+        name: name.trim()
+    };
+    
+    projects.push(newProject);
+    activeProjectId = newProject.id;
+    saveProjects();
+    
+    // Initialize empty journals for new project
+    journals = [];
+    saveJournals();
+    
+    renderProjectSelect();
+    switchProject(activeProjectId);
+}
+
+function deleteProject() {
+    if (projects.length <= 1) {
+        alert("最低1つのプロジェクトが必要です。");
+        return;
+    }
+    
+    if (confirm("現在表示しているデータ枠を完全に削除しますか？\n（復元できません）")) {
+        // Remove journals from storage
+        localStorage.removeItem(`nexledger_journals_${activeProjectId}`);
+        
+        // Remove project from list
+        projects = projects.filter(p => p.id !== activeProjectId);
+        activeProjectId = projects[0].id;
+        saveProjects();
+        
+        renderProjectSelect();
+        switchProject(activeProjectId);
+    }
+}
+
+function switchProject(id) {
+    activeProjectId = id;
+    saveProjects();
+    
+    // Load journals for this project
+    const saved = localStorage.getItem(`nexledger_journals_${id}`);
+    if (saved) {
+        journals = JSON.parse(saved);
+    } else {
+        journals = []; 
+        
+        // --- Migration from old version ---
+        const oldSaved = localStorage.getItem('nexledger_journals');
+        if (oldSaved && id === projects[0].id) {
+             journals = JSON.parse(oldSaved);
+             localStorage.removeItem('nexledger_journals'); // Clean up old data
+             saveJournals();
+        }
+        // ----------------------------------
+    }
+    
+    // Reset UI state
+    document.getElementById('csv-error-message').textContent = '';
+    document.getElementById('audit-results-container').style.display = 'none';
+    document.getElementById('analysis-report-container').style.display = 'none';
+    document.getElementById('analysis-empty-state').style.display = 'block';
+    document.getElementById('btn-run-audit').style.display = 'inline-block';
+    document.getElementById('btn-run-audit').innerHTML = '<i class="fa-solid fa-robot"></i> AI監査を実行する';
+    
+    renderJournalTable();
+}
+
 function saveJournals() {
-    localStorage.setItem('nexledger_journals', JSON.stringify(journals));
+    if (activeProjectId) {
+        localStorage.setItem(`nexledger_journals_${activeProjectId}`, JSON.stringify(journals));
+    }
 }
 
 // Utility to format currency
