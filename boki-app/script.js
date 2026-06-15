@@ -348,14 +348,21 @@ function runAIAudit() {
 function detectAnomalies(data) {
     const anomalies = [];
     const seen = new Set();
+    const dailyAccountCounts = {};
+    let cashBalance = 0;
+    let negativeCashFlagged = false;
     
-    data.forEach((entry) => {
+    // 順番通りに処理するために日付順にソート（現金残高計算のため）
+    const chronologicalData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    chronologicalData.forEach((entry) => {
+        // --- 既存のルール ---
         // 1. High Amount Anomaly
         if (entry.debitAmount >= 100000 && ['消耗品費', '交際費', '通信費', '水道光熱費'].includes(entry.debitAccount)) {
             anomalies.push({
                 title: '異常に高額な経費を検知',
                 detail: `${entry.date} - ${entry.debitAccount}: ${formatCurrency(entry.debitAmount)}円 (${entry.description})`,
-                suggestion: `${entry.debitAccount}として10万円を超える支出は通常よりもかなり高額です。固定資産（備品など）として計上すべきものでないか確認するか、コスト削減のための相見積もりを推奨します。`
+                suggestion: `${entry.debitAccount}として10万円を超える支出は通常よりもかなり高額です。固定資産（備品など）として計上すべきものでないか確認するか、コスト削減のための相見積もりを推奨します。証拠となる書類を提出してください。`
             });
         }
         
@@ -365,7 +372,7 @@ function detectAnomalies(data) {
             anomalies.push({
                 title: '重複仕訳の疑い',
                 detail: `${entry.date} に ${formatCurrency(entry.debitAmount)}円 の ${entry.debitAccount} が複数回記録されています。`,
-                suggestion: '二重入力（ダブルカウント）の可能性があります。入力ミスがないか、または意図的な分割入力か確認してください。'
+                suggestion: '二重入力（ダブルカウント）の可能性があります。入力ミスがないか、または意図的な分割入力か確認してください。証拠となる書類を提出してください。'
             });
         }
         seen.add(dupKey);
@@ -377,9 +384,41 @@ function detectAnomalies(data) {
                  anomalies.push({
                     title: '休日における不自然な経費',
                     detail: `${entry.date} (休日) - ${entry.debitAccount}: ${formatCurrency(entry.debitAmount)}円 (${entry.description})`,
-                    suggestion: '休日の経費が計上されています。プライベートな支出が混ざっていないか、業務関連性が証明できる領収書が揃っているか確認してください。'
+                    suggestion: '休日の経費が計上されています。プライベートな支出が混ざっていないか、業務関連性が証明できる領収書が揃っているか確認してください。証拠となる書類を提出してください。'
                 });
             }
+        }
+        
+        // --- 新規ルール1: 現金の大幅なマイナス残高 ---
+        if (entry.debitAccount === '現金') cashBalance += entry.debitAmount;
+        if (entry.creditAccount === '現金') cashBalance -= entry.creditAmount;
+        
+        if (cashBalance < 0 && !negativeCashFlagged) {
+            anomalies.push({
+                title: '現金の大幅なマイナス残高',
+                detail: `${entry.date} 時点で現金の残高が ${formatCurrency(cashBalance)}円 になっています。`,
+                suggestion: '現金科目の残高がマイナスになることは物理的にあり得ません。記帳ミスか不正の証拠です。証拠となる書類を提出してください。'
+            });
+            negativeCashFlagged = true; // 1回だけ警告する
+        }
+        
+        // --- 新規ルール2: 同一日・同一科目への分散計上のための集計 ---
+        if (['消耗品費', '交際費', '旅費交通費', '備品', '仕入'].includes(entry.debitAccount)) {
+            const key = `${entry.date}-${entry.debitAccount}`;
+            if (!dailyAccountCounts[key]) dailyAccountCounts[key] = [];
+            dailyAccountCounts[key].push(entry);
+        }
+    });
+    
+    // 新規ルール2: 分散計上の判定
+    Object.values(dailyAccountCounts).forEach(entries => {
+        if (entries.length >= 2) {
+            const details = entries.map(e => `${formatCurrency(e.debitAmount)}円`).join('、');
+            anomalies.push({
+                title: '同一日・同一科目への分散計上（スラミングの疑い）',
+                detail: `${entries[0].date} - ${entries[0].debitAccount}: 計${entries.length}回 (${details})`,
+                suggestion: '稟議承認の上限額を意図的に回避する「スラミング」の疑いがあります。証拠となる書類を提出してください。'
+            });
         }
     });
     
