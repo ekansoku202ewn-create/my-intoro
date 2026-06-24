@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS for Excel/CSV parsing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -151,6 +153,22 @@
                         <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-comment-medical"></i> AI総合アドバイス</h3>
                         <div id="analysis-ai-comments" style="line-height: 1.6; color: var(--text-main);">
                             <!-- Comments injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 20px;">
+                        <div class="card glass-card">
+                            <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem; text-align: center;"><i class="fa-solid fa-scale-balanced"></i> 収支バランス</h3>
+                            <div style="position: relative; height: 300px; width: 100%;">
+                                <canvas id="chart-balance"></canvas>
+                            </div>
+                        </div>
+                        <div class="card glass-card">
+                            <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem; text-align: center;"><i class="fa-solid fa-chart-pie"></i> 経費内訳</h3>
+                            <div style="position: relative; height: 300px; width: 100%;">
+                                <canvas id="chart-expense"></canvas>
+                            </div>
                         </div>
                     </div>
 

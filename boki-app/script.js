@@ -2,6 +2,8 @@
 let projects = [];
 let activeProjectId = null;
 let journals = [];
+let balanceChartInstance = null;
+let expenseChartInstance = null;
 
 // DOM Loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -541,4 +543,113 @@ function generateAnalysisReport() {
     } else {
         tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">費用のデータがありません</td></tr>';
     }
+    
+    // --- Render Charts ---
+    renderCharts(totalRevenue, totalExpense, sortedExpenses);
+}
+
+function renderCharts(revenue, expense, sortedExpenses) {
+    // Colors from CSS root variables approximately
+    const textMain = '#e2e8f0';
+    const success = '#10b981';
+    const danger = '#ef4444';
+    
+    // Destroy existing charts to prevent overlaps
+    if (balanceChartInstance) balanceChartInstance.destroy();
+    if (expenseChartInstance) expenseChartInstance.destroy();
+    
+    // 1. Balance Chart (Bar)
+    const ctxBalance = document.getElementById('chart-balance').getContext('2d');
+    balanceChartInstance = new Chart(ctxBalance, {
+        type: 'bar',
+        data: {
+            labels: ['総収益', '総費用'],
+            datasets: [{
+                label: '金額 (円)',
+                data: [revenue, expense],
+                backgroundColor: [success, danger],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return new Intl.NumberFormat('ja-JP').format(context.raw) + ' 円';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: textMain }
+                },
+                x: {
+                    ticks: { color: textMain }
+                }
+            }
+        }
+    });
+    
+    // 2. Expense Breakdown Chart (Doughnut)
+    const ctxExpense = document.getElementById('chart-expense').getContext('2d');
+    
+    const expenseLabels = [];
+    const expenseData = [];
+    const bgColors = [
+        '#ec4899', '#8b5cf6', '#6366f1', '#3b82f6', '#0ea5e9', 
+        '#06b6d4', '#14b8a6', '#10b981', '#84cc16', '#f59e0b'
+    ];
+    
+    let otherExpense = 0;
+    sortedExpenses.forEach((item, index) => {
+        if (index < 6) { // Top 6 expenses
+            expenseLabels.push(item[0]);
+            expenseData.push(item[1]);
+        } else {
+            otherExpense += item[1];
+        }
+    });
+    
+    if (otherExpense > 0) {
+        expenseLabels.push('その他');
+        expenseData.push(otherExpense);
+    }
+    
+    expenseChartInstance = new Chart(ctxExpense, {
+        type: 'doughnut',
+        data: {
+            labels: expenseLabels.length > 0 ? expenseLabels : ['データなし'],
+            datasets: [{
+                data: expenseData.length > 0 ? expenseData : [1],
+                backgroundColor: expenseData.length > 0 ? bgColors.slice(0, expenseLabels.length) : ['rgba(255,255,255,0.1)'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: textMain, font: { size: 11 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if(expenseData.length === 0) return 'データがありません';
+                            return context.label + ': ' + new Intl.NumberFormat('ja-JP').format(context.raw) + ' 円';
+                        }
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
 }
