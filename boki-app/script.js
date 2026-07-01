@@ -5,6 +5,30 @@ let journals = [];
 let balanceChartInstance = null;
 let expenseChartInstance = null;
 
+// Account Categories for Analysis (Default)
+const accountCategories = {
+    '現金': 'asset',
+    '普通預金': 'asset',
+    '当座預金': 'asset',
+    '売掛金': 'asset',
+    '備品': 'asset',
+    '買掛金': 'liability',
+    '借入金': 'liability',
+    '未払金': 'liability',
+    '資本金': 'equity',
+    '売上': 'revenue',
+    '受取利息': 'revenue',
+    '仕入': 'expense',
+    '消耗品費': 'expense',
+    '旅費交通費': 'expense',
+    '水道光熱費': 'expense',
+    '通信費': 'expense',
+    '支払家賃': 'expense',
+    '給料': 'expense',
+    '交際費': 'expense',
+    '接待交際費': 'expense'
+};
+
 // DOM Loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Tab Navigation Logic
@@ -31,6 +55,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('btn-new-project').addEventListener('click', createProject);
     document.getElementById('btn-delete-project').addEventListener('click', deleteProject);
+    
+    // Project Settings
+    document.getElementById('btn-save-opening-cash').addEventListener('click', saveOpeningCash);
+    
+    // Unmapped Accounts Event
+    document.getElementById('btn-save-mappings').addEventListener('click', saveAccountMappings);
 
     // Load Projects from LocalStorage
     loadProjects();
@@ -43,9 +73,19 @@ function loadProjects() {
     
     if (savedProjects) {
         projects = JSON.parse(savedProjects);
+        // Migration: Add new fields if they don't exist
+        projects.forEach(p => {
+            if (p.openingCashBalance === undefined) p.openingCashBalance = null;
+            if (p.customCategories === undefined) p.customCategories = {};
+        });
     } else {
         // Default initial project
-        projects = [{ id: 'default_' + Date.now(), name: 'デフォルトデータ' }];
+        projects = [{ 
+            id: 'default_' + Date.now(), 
+            name: 'デフォルトデータ',
+            openingCashBalance: null,
+            customCategories: {}
+        }];
         localStorage.setItem('nexledger_projects', JSON.stringify(projects));
     }
     
@@ -81,7 +121,9 @@ function createProject() {
     
     const newProject = {
         id: 'proj_' + Date.now(),
-        name: name.trim()
+        name: name.trim(),
+        openingCashBalance: null,
+        customCategories: {}
     };
     
     projects.push(newProject);
@@ -120,6 +162,11 @@ function switchProject(id) {
     activeProjectId = id;
     saveProjects();
     
+    // Load active project settings to UI
+    const p = projects.find(p => p.id === id);
+    const cashInput = document.getElementById('input-opening-cash');
+    cashInput.value = (p && p.openingCashBalance !== null) ? p.openingCashBalance : '';
+    
     // Load journals for this project
     const saved = localStorage.getItem(`nexledger_journals_${id}`);
     if (saved) {
@@ -151,6 +198,37 @@ function switchProject(id) {
 function saveJournals() {
     if (activeProjectId) {
         localStorage.setItem(`nexledger_journals_${activeProjectId}`, JSON.stringify(journals));
+    }
+}
+
+function saveOpeningCash() {
+    const val = document.getElementById('input-opening-cash').value;
+    const p = projects.find(proj => proj.id === activeProjectId);
+    if (p) {
+        p.openingCashBalance = val === '' ? null : Number(val);
+        saveProjects();
+        alert('期首現金残高を保存しました。');
+    }
+}
+
+function saveAccountMappings() {
+    const selects = document.querySelectorAll('.unmapped-select');
+    const p = projects.find(proj => proj.id === activeProjectId);
+    if (!p) return;
+    if (!p.customCategories) p.customCategories = {};
+    
+    let updated = false;
+    selects.forEach(sel => {
+        if (sel.value) {
+            p.customCategories[sel.dataset.account] = sel.value;
+            updated = true;
+        }
+    });
+    
+    if (updated) {
+        saveProjects();
+        alert('マッピングを保存しました。再分析を実行します。');
+        runAIAudit();
     }
 }
 
@@ -295,7 +373,7 @@ function handleCSVImport() {
     reader.readAsArrayBuffer(file);
 }
 
-// AI Audit Logic (疑似AI監査)
+// AI Audit Logic (スマートAI監査)
 function runAIAudit() {
     const btn = document.getElementById('btn-run-audit');
     const loading = document.getElementById('audit-loading');
@@ -351,24 +429,40 @@ function detectAnomalies(data) {
     const anomalies = [];
     const seen = new Set();
     const dailyAccountCounts = {};
-    let cashBalance = 0;
-    let negativeCashFlagged = false;
     
-    // 順番通りに処理するために日付順にソート（現金残高計算のため）
+    const activeProject = projects.find(p => p.id === activeProjectId) || {};
+    const customCats = activeProject.customCategories || {};
+    const getCat = (acc) => customCats[acc] || accountCategories[acc];
+    
+    let totalExpense = 0;
+    data.forEach(entry => {
+        if (getCat(entry.debitAccount) === 'expense') totalExpense += entry.debitAmount;
+        if (getCat(entry.creditAccount) === 'expense') totalExpense -= entry.creditAmount;
+    });
+    if (totalExpense <= 0) totalExpense = 1; // Prevent zero division
+    
+    let cashBalance = activeProject.openingCashBalance !== null ? activeProject.openingCashBalance : 0;
+    let peakCash = cashBalance;
+    let negativeCashFlagged = false;
+    let suddenDropFlagged = false;
+    
+    // 順番通りに処理するために日付順にソート
     const chronologicalData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
     
     chronologicalData.forEach((entry) => {
-        // --- 既存のルール ---
-        // 1. High Amount Anomaly
-        if (entry.debitAmount >= 100000 && ['消耗品費', '交際費', '通信費', '水道光熱費'].includes(entry.debitAccount)) {
+        // 1. High Amount Anomaly (Relative)
+        // 総費用の10%以上、かつ5万円以上の場合に異常高額とする
+        const isHighRelative = entry.debitAmount > (totalExpense * 0.1) && entry.debitAmount >= 50000;
+        if (isHighRelative && getCat(entry.debitAccount) === 'expense') {
+            const percent = ((entry.debitAmount / totalExpense) * 100).toFixed(1);
             anomalies.push({
-                title: '異常に高額な経費を検知',
-                detail: `${entry.date} - ${entry.debitAccount}: ${formatCurrency(entry.debitAmount)}円 (${entry.description})`,
-                suggestion: `${entry.debitAccount}として10万円を超える支出は通常よりもかなり高額です。固定資産（備品など）として計上すべきものでないか確認するか、コスト削減のための相見積もりを推奨します。証拠となる書類を提出してください。`
+                title: '企業の規模に対して異常に高額な経費',
+                detail: `${entry.date} - ${entry.debitAccount}: ${formatCurrency(entry.debitAmount)}円 (総費用の ${percent}%)`,
+                suggestion: `事業規模（総費用）に対して${percent}%を占める巨大な支出です。固定資産（備品など）として計上すべきものでないか確認するか、相見積もりを推奨します。証拠となる書類を提出してください。`
             });
         }
         
-        // 2. Exact Duplicate Check (same date, same accounts, same amount)
+        // 2. Exact Duplicate Check
         const dupKey = `${entry.date}-${entry.debitAccount}-${entry.debitAmount}-${entry.creditAccount}`;
         if (seen.has(dupKey)) {
             anomalies.push({
@@ -382,7 +476,7 @@ function detectAnomalies(data) {
         // 3. Weekend Transaction
         const d = new Date(entry.date);
         if (!isNaN(d.getTime()) && (d.getDay() === 0 || d.getDay() === 6)) {
-            if (['旅費交通費', '交際費', '消耗品費'].includes(entry.debitAccount)) {
+            if (getCat(entry.debitAccount) === 'expense') {
                  anomalies.push({
                     title: '休日における不自然な経費',
                     detail: `${entry.date} (休日) - ${entry.debitAccount}: ${formatCurrency(entry.debitAmount)}円 (${entry.description})`,
@@ -391,36 +485,64 @@ function detectAnomalies(data) {
             }
         }
         
-        // --- 新規ルール1: 現金の大幅なマイナス残高 ---
-        if (entry.debitAccount === '現金') cashBalance += entry.debitAmount;
-        if (entry.creditAccount === '現金') cashBalance -= entry.creditAmount;
-        
-        if (cashBalance < 0 && !negativeCashFlagged) {
-            anomalies.push({
-                title: '現金の大幅なマイナス残高',
-                detail: `${entry.date} 時点で現金の残高が ${formatCurrency(cashBalance)}円 になっています。`,
-                suggestion: '現金科目の残高がマイナスになることは物理的にあり得ません。記帳ミスか不正の証拠です。証拠となる書類を提出してください。'
-            });
-            negativeCashFlagged = true; // 1回だけ警告する
+        // 4. Smart Cash Balance Check
+        if (entry.debitAccount === '現金') {
+            cashBalance += entry.debitAmount;
+            if (cashBalance > peakCash) peakCash = cashBalance;
+        }
+        if (entry.creditAccount === '現金') {
+            cashBalance -= entry.creditAmount;
         }
         
-        // --- 新規ルール2: 同一日・同一科目への分散計上のための集計 ---
-        if (['消耗品費', '交際費', '旅費交通費', '備品', '仕入'].includes(entry.debitAccount)) {
+        if (activeProject.openingCashBalance !== null) {
+            // Absolute check since we know opening balance
+            if (cashBalance < 0 && !negativeCashFlagged) {
+                anomalies.push({
+                    title: '現金の大幅なマイナス残高',
+                    detail: `${entry.date} 時点で現金の残高が ${formatCurrency(cashBalance)}円 になっています。`,
+                    suggestion: '現金科目の残高がマイナスになることは物理的にあり得ません。記帳ミスか不正の証拠です。証拠となる書類を提出してください。'
+                });
+                negativeCashFlagged = true;
+            }
+        } else {
+            // Relative check: sudden massive drop from peak
+            const drop = peakCash - cashBalance;
+            if (drop > (totalExpense * 0.2) && drop > 50000 && !suddenDropFlagged) {
+                anomalies.push({
+                    title: '現金の不自然な急減',
+                    detail: `${entry.date} 時点付近で現金残高が直近ピークから ${formatCurrency(drop)}円 減少しています。`,
+                    suggestion: '期首残高が不明ですが、短期間で総費用の20%以上に相当する多額の現金が減少しています。不正引き出しや記帳漏れの疑いがあります。証拠となる書類を提出してください。'
+                });
+                suddenDropFlagged = true;
+            }
+        }
+        
+        // 5. Slamming Aggregation
+        if (getCat(entry.debitAccount) === 'expense' || getCat(entry.debitAccount) === 'asset') {
             const key = `${entry.date}-${entry.debitAccount}`;
             if (!dailyAccountCounts[key]) dailyAccountCounts[key] = [];
             dailyAccountCounts[key].push(entry);
         }
     });
     
-    // 新規ルール2: 分散計上の判定
+    // Slamming Evaluation (Strict)
     Object.values(dailyAccountCounts).forEach(entries => {
-        if (entries.length >= 2) {
-            const details = entries.map(e => `${formatCurrency(e.debitAmount)}円`).join('、');
-            anomalies.push({
-                title: '同一日・同一科目への分散計上（スラミングの疑い）',
-                detail: `${entries[0].date} - ${entries[0].debitAccount}: 計${entries.length}回 (${details})`,
-                suggestion: '稟議承認の上限額を意図的に回避する「スラミング」の疑いがあります。証拠となる書類を提出してください。'
-            });
+        if (entries.length >= 3) {
+            const total = entries.reduce((sum, e) => sum + e.debitAmount, 0);
+            if (total >= 50000) {
+                // Check if total is near typical approval limits
+                const thresholds = [100000, 300000, 500000, 1000000];
+                const isNearThreshold = thresholds.some(t => total >= (t * 0.85) && total <= t);
+                
+                if (isNearThreshold || total >= 300000) {
+                    const details = entries.map(e => `${formatCurrency(e.debitAmount)}円`).join('、');
+                    anomalies.push({
+                        title: '分散計上（スラミング）の強い疑い',
+                        detail: `${entries[0].date} - ${entries[0].debitAccount}: 計${entries.length}回 (合計: ${formatCurrency(total)}円)`,
+                        suggestion: `同一日に3件以上に細かく分割され、かつ合計額が稟議ラインに近い（または高額な）不自然な計上です（内訳: ${details}）。承認上限額を意図的に回避するスラミングの疑いがあります。証拠となる書類を提出してください。`
+                    });
+                }
+            }
         }
     });
     
@@ -428,39 +550,27 @@ function detectAnomalies(data) {
 }
 
 // Financial Analysis Report Logic (財務分析)
-// Account Categories for Analysis
-const accountCategories = {
-    '現金': 'asset',
-    '普通預金': 'asset',
-    '売掛金': 'asset',
-    '備品': 'asset',
-    '買掛金': 'liability',
-    '借入金': 'liability',
-    '資本金': 'equity',
-    '売上': 'revenue',
-    '受取利息': 'revenue',
-    '仕入': 'expense',
-    '消耗品費': 'expense',
-    '旅費交通費': 'expense',
-    '水道光熱費': 'expense',
-    '通信費': 'expense',
-    '支払家賃': 'expense',
-    '給料': 'expense',
-    '交際費': 'expense' // Added just in case
-};
-
 function generateAnalysisReport() {
     document.getElementById('analysis-empty-state').style.display = 'none';
     document.getElementById('analysis-report-container').style.display = 'block';
+    
+    const activeProject = projects.find(p => p.id === activeProjectId) || {};
+    const customCats = activeProject.customCategories || {};
+    const getCat = (acc) => customCats[acc] || accountCategories[acc];
+    
+    const unmappedAccounts = new Set();
     
     let totalRevenue = 0;
     let totalExpense = 0;
     const expenseBreakdown = {};
     
     journals.forEach(entry => {
-        // Fallback defaults if category is not found (treat as neutral or infer)
-        const debitCat = accountCategories[entry.debitAccount] || 'asset';
-        const creditCat = accountCategories[entry.creditAccount] || 'liability';
+        // Collect unknown accounts
+        if (!getCat(entry.debitAccount)) unmappedAccounts.add(entry.debitAccount);
+        if (!getCat(entry.creditAccount)) unmappedAccounts.add(entry.creditAccount);
+        
+        const debitCat = getCat(entry.debitAccount);
+        const creditCat = getCat(entry.creditAccount);
         
         if (debitCat === 'expense') {
             totalExpense += entry.debitAmount;
@@ -480,6 +590,32 @@ function generateAnalysisReport() {
         }
     });
     
+    // Render Unmapped Accounts UI
+    const unmappedContainer = document.getElementById('unmapped-accounts-container');
+    const unmappedList = document.getElementById('unmapped-accounts-list');
+    unmappedList.innerHTML = '';
+    
+    if (unmappedAccounts.size > 0) {
+        unmappedContainer.style.display = 'block';
+        unmappedAccounts.forEach(acc => {
+            unmappedList.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px;">
+                    <span style="color: var(--text-main); font-weight: bold;">${acc}</span>
+                    <select class="unmapped-select" data-account="${acc}" style="padding: 0.3rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.5); color: white;">
+                        <option value="">-- カテゴリを選択 --</option>
+                        <option value="asset">資産 (Asset)</option>
+                        <option value="liability">負債 (Liability)</option>
+                        <option value="equity">純資産 (Equity)</option>
+                        <option value="revenue">収益 (Revenue)</option>
+                        <option value="expense">費用 (Expense)</option>
+                    </select>
+                </div>
+            `;
+        });
+    } else {
+        unmappedContainer.style.display = 'none';
+    }
+    
     const netIncome = totalRevenue - totalExpense;
     
     document.getElementById('score-revenue').textContent = formatCurrency(totalRevenue);
@@ -489,18 +625,21 @@ function generateAnalysisReport() {
     netIncomeEl.textContent = formatCurrency(netIncome);
     netIncomeEl.style.color = netIncome >= 0 ? 'var(--success)' : 'var(--danger)';
     
+    // Relative Health Score based on Profit Margin
+    const margin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
+    
     let healthScore = 'C';
     let healthColor = 'var(--danger)';
-    if (netIncome > 0 && totalRevenue >= totalExpense * 1.2) {
-        healthScore = 'S';
-        healthColor = 'var(--success)';
-    } else if (netIncome > 0) {
-        healthScore = 'A';
-        healthColor = 'var(--success)';
-    } else if (netIncome === 0 && totalRevenue === 0) {
+    if (totalRevenue === 0 && totalExpense === 0) {
         healthScore = '-';
         healthColor = 'var(--text-muted)';
-    } else if (netIncome >= -50000) {
+    } else if (margin >= 15) {
+        healthScore = 'S';
+        healthColor = 'var(--success)';
+    } else if (margin >= 5) {
+        healthScore = 'A';
+        healthColor = 'var(--success)';
+    } else if (margin >= 0) {
         healthScore = 'B';
         healthColor = 'var(--warning)';
     } else {
@@ -514,11 +653,11 @@ function generateAnalysisReport() {
     
     let commentHtml = '';
     if (healthScore === 'S' || healthScore === 'A') {
-        commentHtml = '<p>現在の財務状態は<strong>非常に健全</strong>です。収益が費用を上回っており、安定した利益を生み出せています。このままのペースを維持しつつ、余剰資金を将来の成長投資へ回すことを検討してください。</p>';
+        commentHtml = `<p>現在の財務状態は<strong>非常に健全</strong>です。売上高利益率は約${margin.toFixed(1)}%と高く、安定した利益を生み出せています。このままのペースを維持しつつ、余剰資金を将来の成長投資へ回すことを検討してください。</p>`;
     } else if (healthScore === 'B') {
-        commentHtml = '<p>わずかに赤字、または収支トントンです。<strong>固定費の削減</strong>や、単価アップによる売上の向上を図る必要があります。無駄な支出がないか内訳を確認してください。</p>';
+        commentHtml = `<p>わずかに赤字、または収支トントンです（利益率: ${margin.toFixed(1)}%）。<strong>固定費の削減</strong>や、単価アップによる売上の向上を図る必要があります。無駄な支出がないか内訳を確認してください。</p>`;
     } else if (healthScore === 'C') {
-        commentHtml = '<p style="color: var(--danger);"><strong>重大な警告:</strong> 大きな赤字が発生しています。資金繰りが悪化する前に、不要不急の経費を直ちにカットし、抜本的な収益改善策を実行する必要があります。</p>';
+        commentHtml = `<p style="color: var(--danger);"><strong>重大な警告:</strong> 大きな赤字が発生しています（利益率: ${margin.toFixed(1)}%）。資金繰りが悪化する前に、不要不急の経費を直ちにカットし、抜本的な収益改善策を実行する必要があります。</p>`;
     } else {
         commentHtml = '<p>分析に十分なデータがありません。</p>';
     }

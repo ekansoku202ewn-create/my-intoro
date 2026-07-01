@@ -48,6 +48,14 @@
                 
                 <div class="card glass-card mt-20">
                     <div class="csv-import-section">
+                        <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-coins"></i> プロジェクト設定</h3>
+                        <div class="form-row" style="align-items: center; margin-bottom: 2rem;">
+                            <label style="color: var(--text-main); font-size: 0.95rem;">期首現金残高（設定すると現金マイナス判定が正確になります）</label>
+                            <input type="number" id="input-opening-cash" placeholder="例: 100000" style="padding: 0.5rem; flex: 1; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+                            <button id="btn-save-opening-cash" class="btn-action" style="padding: 0.5rem 1rem;">保存</button>
+                        </div>
+
+                        <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-file-csv"></i> データ取込</h3>
                         <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
                             仕訳帳データ（ExcelまたはCSV）をアップロードしてください。AIが異常を検知・分析します。
                         </p>
@@ -128,6 +136,17 @@
                 <p class="subtitle">AIによる総合的な財務診断とアドバイスレポートです。</p>
 
                 <div id="analysis-report-container" style="display: none;">
+                    
+                    <!-- Unmapped Accounts Warning -->
+                    <div id="unmapped-accounts-container" class="card glass-card" style="display: none; border-left: 4px solid var(--warning); margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 1rem; color: var(--warning); font-size: 1.1rem;"><i class="fa-solid fa-triangle-exclamation"></i> 未分類の勘定科目があります</h3>
+                        <p style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 1rem;">以下の科目はAIが判定できませんでした。正確な分析のため、該当するカテゴリを選択して保存してください。</p>
+                        <div id="unmapped-accounts-list" style="display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1rem;">
+                            <!-- Mappings injected here -->
+                        </div>
+                        <button id="btn-save-mappings" class="btn-submit" style="padding: 0.5rem 1rem; font-size: 0.9rem;">マッピングを保存して再分析</button>
+                    </div>
+
                     <!-- Dashboard Cards -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 20px;">
                         <div class="card glass-card" style="text-align: center;">
