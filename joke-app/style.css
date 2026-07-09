@@ -382,6 +382,165 @@ body {
     box-shadow: 0 0 15px rgba(255, 42, 109, 0.3);
 }
 
+/* Image Controls */
+.image-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 10px;
+    width: 100%;
+}
+.image-controls.hidden {
+    display: none;
+}
+.ctrl-btn {
+    background: rgba(20, 5, 15, 0.6);
+    border: 1px solid var(--neon-purple);
+    color: #fff;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.ctrl-btn:hover {
+    background: rgba(181, 55, 242, 0.3);
+    box-shadow: 0 0 10px var(--neon-purple);
+    transform: scale(1.1);
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal.hidden {
+    display: none;
+}
+.modal-content {
+    position: relative;
+    padding: 3rem;
+    text-align: center;
+}
+.close-modal {
+    position: absolute;
+    top: 10px; right: 20px;
+    font-size: 2rem;
+    color: var(--neon-pink);
+    cursor: pointer;
+}
+#qr-image {
+    margin-top: 1rem;
+    border: 2px solid var(--neon-purple);
+    border-radius: 8px;
+    padding: 10px;
+    background: #fff;
+    max-width: 100%;
+}
+
+/* Panic Button */
+.panic-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.2;
+    transition: opacity 0.3s ease;
+    z-index: 50;
+}
+.panic-btn:hover {
+    opacity: 1;
+}
+
+/* Safe Mode (Boss Key) */
+body.safe-mode {
+    background: #fff;
+    color: #333;
+}
+body.safe-mode .background-effects,
+body.safe-mode .container,
+body.safe-mode .panic-btn,
+body.safe-mode .modal {
+    display: none !important;
+}
+
+.fake-site {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #fff;
+    z-index: 9999;
+    font-family: Arial, sans-serif;
+}
+.fake-site.hidden {
+    display: none;
+}
+body.safe-mode .fake-site {
+    display: block;
+}
+
+.fake-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 15px 20px;
+    gap: 15px;
+    font-size: 14px;
+}
+.fake-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #5f6368;
+}
+
+.fake-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10vh;
+}
+.fake-logo {
+    font-size: 80px;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+.fake-search-bar {
+    width: 90%;
+    max-width: 584px;
+    height: 46px;
+    border: 1px solid #dfe1e5;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+}
+.fake-buttons {
+    margin-top: 30px;
+    display: flex;
+    gap: 12px;
+}
+.fake-buttons button {
+    background: #f8f9fa;
+    border: 1px solid #f8f9fa;
+    border-radius: 4px;
+    color: #3c4043;
+    font-size: 14px;
+    padding: 0 16px;
+    line-height: 36px;
+    cursor: pointer;
+}
+.fake-buttons button:hover {
+    border-color: #dadce0;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
 @media (max-width: 600px) {
     .title { font-size: 2.2rem; }
     .glass-card { padding: 1.5rem; }

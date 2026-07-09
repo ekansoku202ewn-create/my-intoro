@@ -45,6 +45,9 @@
                     </select>
                     <input type="text" id="ai-prompt" class="neon-input prompt-input" placeholder="どんな画像がいい？ (例: 教室で微笑むJK)">
                 </div>
+                <div class="ai-input-group">
+                    <input type="text" id="fetish-prompt" class="neon-input" style="margin-bottom: 0;" placeholder="フェチを入力 (任意) (例: 黒ストッキング)">
+                </div>
                 <div class="upload-buttons ai-buttons">
                     <button id="ai-generate-1" class="neon-btn upload-btn small-btn">左に生成 🪄</button>
                     <button id="ai-generate-2" class="neon-btn upload-btn small-btn">右に生成 🪄</button>
@@ -54,21 +57,37 @@
             <div id="image-preview-container" class="preview-container hidden">
                 <!-- Image 1 -->
                 <div class="image-wrapper" id="wrapper-1">
-                    <img id="image-preview-1" src="" alt="プレビュー画像1" class="preview-image">
+                    <img id="image-preview-1" src="" alt="プレビュー画像1" class="preview-image" crossorigin="anonymous">
                     <div id="speech-bubble-1" class="speech-bubble bubble-left hidden">
                         <p id="joke-text-1"></p>
+                    </div>
+                    <div class="image-controls hidden" id="controls-1">
+                        <button class="ctrl-btn save-btn" data-target="1" title="保存">💾</button>
+                        <button class="ctrl-btn mosaic-btn" data-target="1" title="モザイク">⬛</button>
+                        <button class="ctrl-btn qr-btn" data-target="1" title="QR作成 (AI画像のみ)">📱</button>
                     </div>
                 </div>
                 <!-- Image 2 (Hidden by default until 2 images are uploaded) -->
                 <div class="image-wrapper hidden" id="wrapper-2">
-                    <img id="image-preview-2" src="" alt="プレビュー画像2" class="preview-image">
+                    <img id="image-preview-2" src="" alt="プレビュー画像2" class="preview-image" crossorigin="anonymous">
                     <div id="speech-bubble-2" class="speech-bubble bubble-right hidden">
                         <p id="joke-text-2"></p>
+                    </div>
+                    <div class="image-controls hidden" id="controls-2">
+                        <button class="ctrl-btn save-btn" data-target="2" title="保存">💾</button>
+                        <button class="ctrl-btn mosaic-btn" data-target="2" title="モザイク">⬛</button>
+                        <button class="ctrl-btn qr-btn" data-target="2" title="QR作成 (AI画像のみ)">📱</button>
                     </div>
                 </div>
             </div>
 
             <div class="action-section">
+                <select id="personality-select" class="neon-input" style="margin-bottom: 1rem; text-align: center; cursor: pointer;">
+                    <option value="standard">標準 (妖艶)</option>
+                    <option value="s">ドS (強気・責め)</option>
+                    <option value="m">ドM (弱気・服従)</option>
+                    <option value="none">今はその気分ではない</option>
+                </select>
                 <button id="generate-btn" class="neon-btn generate-btn" disabled>囁かせる 🫦</button>
             </div>
 
@@ -77,6 +96,41 @@
             </div>
         </section>
     </main>
+
+    <!-- QR Code Modal -->
+    <div id="qr-modal" class="modal hidden">
+        <div class="modal-content glass-card">
+            <span class="close-modal" id="close-qr">&times;</span>
+            <p>このAI画像のQRコードです</p>
+            <img id="qr-image" src="" alt="QR Code">
+        </div>
+    </div>
+
+    <!-- Panic Button -->
+    <button id="panic-btn" class="panic-btn" title="緊急回避 (Escキー)">👁️‍🗨️</button>
+
+    <!-- Fake Safe Site (Google clone) -->
+    <div id="fake-site" class="fake-site hidden">
+        <div class="fake-header">
+            <span>Gmail</span>
+            <span>Images</span>
+            <div class="fake-avatar"></div>
+        </div>
+        <div class="fake-main">
+            <div class="fake-logo">
+                <span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span>
+            </div>
+            <div class="fake-search-bar">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="fake-buttons">
+                <button>Google Search</button>
+                <button>I'm Feeling Lucky</button>
+            </div>
+        </div>
+        <!-- Return Button -->
+        <button id="return-btn" class="panic-btn" style="color: #ccc;" title="元のサイトに戻る">👁️‍🗨️</button>
+    </div>
 
     <script src="script.js"></script>
 </body>

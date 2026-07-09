@@ -43,7 +43,7 @@
             <section id="tab-import" class="tab-content active">
                 <div class="header-with-actions">
                     <h2><i class="fa-solid fa-file-import"></i> CSV/Excel データ取込</h2>
-                    <button class="btn-clear" onclick="if(confirm('全てのデータを消去しますか？')) { journals = []; saveJournals(); renderJournalTable(); }"><i class="fa-solid fa-trash"></i> 全データ消去</button>
+                    <button id="btn-clear-all" class="btn-clear"><i class="fa-solid fa-trash"></i> 全データ消去</button>
                 </div>
                 
                 <div class="card glass-card mt-20">
@@ -53,6 +53,16 @@
                             <label style="color: var(--text-main); font-size: 0.95rem;">期首現金残高（設定すると現金マイナス判定が正確になります）</label>
                             <input type="number" id="input-opening-cash" placeholder="例: 100000" style="padding: 0.5rem; flex: 1; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
                             <button id="btn-save-opening-cash" class="btn-action" style="padding: 0.5rem 1rem;">保存</button>
+                        </div>
+
+                        <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-cloud-arrow-down"></i> バックアップ・エクスポート</h3>
+                        <div class="form-row" style="margin-bottom: 2rem; gap: 1rem;">
+                            <button id="btn-export-json" class="btn-action"><i class="fa-solid fa-download"></i> JSONでバックアップ</button>
+                            <label class="btn-action" style="cursor: pointer;">
+                                <i class="fa-solid fa-upload"></i> バックアップから復元
+                                <input type="file" id="btn-import-json" accept=".json" style="display: none;">
+                            </label>
+                            <button id="btn-export-excel" class="btn-action"><i class="fa-solid fa-file-excel"></i> 仕訳をExcelで出力</button>
                         </div>
 
                         <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-file-csv"></i> データ取込</h3>
@@ -82,7 +92,10 @@
                 </div>
 
                 <div class="card glass-card mt-20">
-                    <h2><i class="fa-solid fa-list"></i> 取込済データプレビュー</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="margin: 0;"><i class="fa-solid fa-list"></i> 取込済データプレビュー</h2>
+                        <input type="text" id="journal-search" placeholder="日付・科目・摘要を検索..." style="padding: 0.5rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; min-width: 200px;">
+                    </div>
                     <div class="table-responsive">
                         <table class="data-table" id="journal-table">
                             <thead>
@@ -100,6 +113,11 @@
                             </tbody>
                         </table>
                     </div>
+                    <div id="journal-pagination" style="display: none; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1rem;">
+                        <span id="journal-page-info" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+                        <button id="journal-page-prev" class="btn-action btn-sm"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button id="journal-page-next" class="btn-action btn-sm"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
                 </div>
             </section>
 
@@ -112,11 +130,11 @@
                 
                 <div class="card glass-card" style="text-align: center; padding: 2rem;">
                     <button id="btn-run-audit" class="btn-submit" style="font-size: 1.2rem; padding: 1rem 2rem;">
-                        <i class="fa-solid fa-robot"></i> AI監査を実行する
+                        <i class="fa-solid fa-stethoscope"></i> 診断を実行する
                     </button>
                     <div id="audit-loading" style="display: none; margin-top: 2rem;">
                         <i class="fa-solid fa-spinner fa-spin fa-3x" style="color: var(--accent-primary);"></i>
-                        <p style="margin-top: 1rem; color: var(--text-main);">AIが仕訳データを分析中...</p>
+                        <p id="audit-loading-text" style="margin-top: 1rem; color: var(--text-main);">診断の準備中...</p>
                     </div>
                 </div>
 
@@ -139,8 +157,19 @@
                     
                     <!-- Unmapped Accounts Warning -->
                     <div id="unmapped-accounts-container" class="card glass-card" style="display: none; border-left: 4px solid var(--warning); margin-bottom: 20px;">
-                        <h3 style="margin-bottom: 1rem; color: var(--warning); font-size: 1.1rem;"><i class="fa-solid fa-triangle-exclamation"></i> 未分類の勘定科目があります</h3>
-                        <p style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 1rem;">以下の科目はAIが判定できませんでした。正確な分析のため、該当するカテゴリを選択して保存してください。</p>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                            <div>
+                                <h3 style="margin-bottom: 0.5rem; color: var(--warning); font-size: 1.1rem;"><i class="fa-solid fa-triangle-exclamation"></i> 未分類の勘定科目があります</h3>
+                                <p style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 0;">以下の科目は自動判定できませんでした。正確な分析のため、該当するカテゴリを選択して保存してください。</p>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button id="btn-export-mapping" class="btn-action btn-sm" title="マッピングをJSONでエクスポート"><i class="fa-solid fa-download"></i></button>
+                                <label class="btn-action btn-sm" style="cursor: pointer;" title="マッピングをインポート">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <input type="file" id="btn-import-mapping" accept=".json" style="display: none;">
+                                </label>
+                            </div>
+                        </div>
                         <div id="unmapped-accounts-list" style="display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1rem;">
                             <!-- Mappings injected here -->
                         </div>
@@ -167,9 +196,9 @@
                         </div>
                     </div>
 
-                    <!-- AI Comments -->
+                    <!-- AI Advice -->
                     <div class="card glass-card mb-20">
-                        <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-comment-medical"></i> AI総合アドバイス</h3>
+                        <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-comment-medical"></i> 診断結果と改善提案</h3>
                         <div id="analysis-ai-comments" style="line-height: 1.6; color: var(--text-main);">
                             <!-- Comments injected here -->
                         </div>
@@ -192,21 +221,29 @@
                     </div>
 
                     <!-- Breakdown Table -->
-                    <div class="card glass-card">
-                        <h3 style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-list-ol"></i> 費用内訳（大きい順）</h3>
+                    <div class="card glass-card mb-20">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0; color: var(--text-main); font-size: 1.1rem;"><i class="fa-solid fa-list-ol"></i> 費用内訳（大きい順）</h3>
+                            <input type="text" id="expense-search" placeholder="科目を検索..." style="padding: 0.3rem 0.5rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; width: 150px;">
+                        </div>
                         <div class="table-responsive">
                             <table class="data-table" id="expense-breakdown-table">
                                 <thead>
                                     <tr>
-                                        <th>勘定科目</th>
-                                        <th class="amount-cell">金額</th>
-                                        <th class="amount-cell">割合</th>
+                                        <th>科目</th>
+                                        <th>金額</th>
+                                        <th>構成比</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- Breakdown injected here -->
+                                    <!-- Injected by JS -->
                                 </tbody>
                             </table>
+                        </div>
+                        <div id="expense-pagination" style="display: none; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1rem;">
+                            <span id="expense-page-info" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+                            <button id="expense-page-prev" class="btn-action btn-sm"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button id="expense-page-next" class="btn-action btn-sm"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
@@ -217,6 +254,26 @@
         </main>
     </div>
     
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card glass-card modal-content" role="dialog" aria-modal="true" style="width: 90%; max-width: 400px; animation: modalFadeIn 0.2s ease-out;">
+            <h3 id="custom-modal-title" style="margin-bottom: 1rem; color: var(--text-main); font-size: 1.2rem;"></h3>
+            <div id="custom-modal-message" style="margin-bottom: 1.5rem; color: var(--text-main); line-height: 1.5;"></div>
+            <input type="text" id="custom-modal-input" style="display: none; width: 100%; margin-bottom: 1.5rem; padding: 0.5rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+            <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button id="custom-modal-cancel" class="btn-clear" style="display: none;">キャンセル</button>
+                <button id="custom-modal-confirm" class="btn-submit">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+
     <script src="script.js"></script>
 </body>
 </html>
