@@ -482,12 +482,13 @@ function handleCSVImport() {
     }
     
     const file = fileInput.files[0];
+    const isCSV = file.name.toLowerCase().endsWith('.csv');
     const reader = new FileReader();
     
     reader.onload = (e) => {
         try {
             const data = e.target.result;
-            const workbook = XLSX.read(data, { type: 'array' });
+            const workbook = XLSX.read(data, { type: isCSV ? 'string' : 'array' });
             const newEntries = [];
             
             for (const sheetName of workbook.SheetNames) {
@@ -558,7 +559,12 @@ function handleCSVImport() {
             errorMsg.textContent = 'ファイルの読み込み中にエラーが発生しました。ExcelやCSV以外の可能性があります。';
         }
     };
-    reader.readAsArrayBuffer(file);
+    
+    if (isCSV) {
+        reader.readAsText(file, 'Shift_JIS');
+    } else {
+        reader.readAsArrayBuffer(file);
+    }
 }
 
 // AI Diagnostic Logic
